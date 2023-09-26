@@ -14,8 +14,8 @@ import { StakeService } from '../stake/stake.service';
 import { GatewayService } from 'src/common/gateway/gateway.service';
 import { CacheInfo } from 'src/utils/cache.info';
 import { NumberUtils } from '@multiversx/sdk-nestjs-common';
-import { ApiService } from "@multiversx/sdk-nestjs-http";
-import { CacheService } from "@multiversx/sdk-nestjs-cache";
+import { ApiService } from '@multiversx/sdk-nestjs-http';
+import { CacheService } from '@multiversx/sdk-nestjs-cache';
 import { About } from './entities/about';
 import { PluginService } from 'src/common/plugins/plugin.service';
 import { SmartContractResultService } from '../sc-results/scresult.service';
@@ -43,14 +43,14 @@ export class NetworkService {
     @Inject(forwardRef(() => StakeService))
     private readonly stakeService: StakeService,
     private readonly pluginService: PluginService,
-    private readonly smartContractResultService: SmartContractResultService
+    private readonly smartContractResultService: SmartContractResultService,
   ) { }
 
   async getConstants(): Promise<NetworkConstants> {
     return await this.cachingService.getOrSet(
       CacheInfo.Constants.key,
       async () => await this.getConstantsRaw(),
-      CacheInfo.Constants.ttl
+      CacheInfo.Constants.ttl,
     );
   }
 
@@ -85,12 +85,8 @@ export class NetworkService {
   async getNetworkConfig(): Promise<NetworkConfig> {
     const metaChainShard = this.apiConfigService.getMetaChainShardId();
     const [
-      {
-        erd_round_duration, erd_rounds_per_epoch,
-      },
-      {
-        erd_rounds_passed_in_current_epoch,
-      },
+      { erd_round_duration, erd_rounds_per_epoch },
+      { erd_rounds_passed_in_current_epoch },
     ] = await Promise.all([
       this.gatewayService.getNetworkConfig(),
       this.gatewayService.getNetworkStatus(metaChainShard),
@@ -125,7 +121,11 @@ export class NetworkService {
 
     for (const auction of auctions) {
       for (const auctionNode of auction.auctionList) {
-        if (auctionNode.selected === true && (!minimumAuctionTopUp || BigInt(minimumAuctionTopUp) > BigInt(auction.qualifiedTopUp))) {
+        if (
+          auctionNode.selected === true &&
+          (!minimumAuctionTopUp ||
+            BigInt(minimumAuctionTopUp) > BigInt(auction.qualifiedTopUp))
+        ) {
           minimumAuctionTopUp = auction.qualifiedTopUp;
         }
       }
@@ -135,27 +135,33 @@ export class NetworkService {
   }
 
   async getEconomicsRaw(): Promise<Economics> {
-    const [
-      {
-        account: { balance },
-      },
-      {
-        erd_total_supply,
-      },
-      [, totalWaitingStakeBase64],
-      priceValue,
-      tokenMarketCap,
-    ] = await Promise.all([
-      this.gatewayService.getAddressDetails(`${this.apiConfigService.getAuctionContractAddress()}`),
-      this.gatewayService.getNetworkEconomics(),
-      this.vmQueryService.vmQuery(
-        this.apiConfigService.getDelegationContractAddress(),
-        'getTotalStakeByType',
-      ),
+    const auctionContractDetails = await this.gatewayService.getAddressDetails(
+      `${this.apiConfigService.getAuctionContractAddress()}`,
+    );
+    const balance = auctionContractDetails.account.balance;
+    console.log('auctionContractDetails', auctionContractDetails);
+
+    const networkEconomics = await this.gatewayService.getNetworkEconomics();
+    const erd_total_supply = networkEconomics.erd_total_supply;
+    console.log('networkEconomics', networkEconomics);
+
+    const vmQuery = await this.vmQueryService.vmQuery(
+      this.apiConfigService.getDelegationContractAddress(),
+      'getTotalStakeByType',
+    );
+
+    console.log(
+      'vmQuery',
+      this.apiConfigService.getDelegationContractAddress(),
+      vmQuery,
+    );
+
+    const [, totalWaitingStakeBase64] = vmQuery;
+
+    const [priceValue, tokenMarketCap] = await Promise.all([
       this.dataApiService.getEgldPrice(),
       this.tokenService.getTokenMarketCapRaw(),
     ]);
-
 
     const totalWaitingStakeHex = Buffer.from(
       totalWaitingStakeBase64,
@@ -165,14 +171,20 @@ export class NetworkService {
       totalWaitingStakeHex ? '0x' + totalWaitingStakeHex : totalWaitingStakeHex,
     );
 
-    const staked = parseInt((BigInt(balance) + totalWaitingStake).toString().slice(0, -18));
+    const staked = parseInt(
+      (BigInt(balance) + totalWaitingStake).toString().slice(0, -18),
+    );
     const totalSupply = parseInt(erd_total_supply.slice(0, -18));
 
     let locked: number = 0;
     if (this.apiConfigService.getNetwork() === 'mainnet') {
-      const account = await this.accountService.getAccountRaw('erd195fe57d7fm5h33585sc7wl8trqhrmy85z3dg6f6mqd0724ymljxq3zjemc');
+      const account = await this.accountService.getAccountRaw(
+        'erd195fe57d7fm5h33585sc7wl8trqhrmy85z3dg6f6mqd0724ymljxq3zjemc',
+      );
       if (account) {
-        locked = Math.round(NumberUtils.denominate(BigInt(account.balance), 18));
+        locked = Math.round(
+          NumberUtils.denominate(BigInt(account.balance), 18),
+        );
       }
     }
 
@@ -205,10 +217,7 @@ export class NetworkService {
     const metaChainShard = this.apiConfigService.getMetaChainShardId();
 
     const [
-      {
-        erd_num_shards_without_meta: shards,
-        erd_round_duration: refreshRate,
-      },
+      { erd_num_shards_without_meta: shards, erd_round_duration: refreshRate },
       {
         erd_epoch_number: epoch,
         erd_rounds_passed_in_current_epoch: roundsPassed,
@@ -246,7 +255,9 @@ export class NetworkService {
     const stake = await this.stakeService.getGlobalStake();
     const {
       account: { balance: stakedBalance },
-    } = await this.gatewayService.getAddressDetails(`${this.apiConfigService.getAuctionContractAddress()}`);
+    } = await this.gatewayService.getAddressDetails(
+      `${this.apiConfigService.getAuctionContractAddress()}`,
+    );
     let [activeStake] = await this.vmQueryService.vmQuery(
       this.apiConfigService.getDelegationContractAddress(),
       'getTotalActiveStake',
@@ -269,7 +280,9 @@ export class NetworkService {
     const inflationAmounts = this.apiConfigService.getInflationAmounts();
 
     if (yearIndex >= inflationAmounts.length) {
-      throw new Error(`There is no inflation information for year with index ${yearIndex}`,);
+      throw new Error(
+        `There is no inflation information for year with index ${yearIndex}`,
+      );
     }
 
     const inflation = inflationAmounts[yearIndex];
@@ -277,11 +290,15 @@ export class NetworkService {
 
     const topUpRewardsLimit = 0.5 * rewardsPerEpoch;
     const networkBaseStake = stake.activeValidators * stakePerNode;
-    const networkTotalStake = NumberUtils.denominateString(stakedBalance) - (stake.queueSize * stakePerNode);
+    const networkTotalStake =
+      NumberUtils.denominateString(stakedBalance) -
+      stake.queueSize * stakePerNode;
 
     const networkTopUpStake = networkTotalStake - networkBaseStake;
 
-    const topUpReward = ((2 * topUpRewardsLimit) / Math.PI) * Math.atan(networkTopUpStake / (2 * 2000000));
+    const topUpReward =
+      ((2 * topUpRewardsLimit) / Math.PI) *
+      Math.atan(networkTopUpStake / (2 * 2000000));
     const baseReward = rewardsPerEpoch - topUpReward;
 
     const apr = (epochsInYear * (topUpReward + baseReward)) / networkTotalStake;
@@ -303,15 +320,18 @@ export class NetworkService {
   async getAboutRaw(): Promise<About> {
     const appVersion = require('child_process')
       .execSync('git rev-parse HEAD')
-      .toString().trim();
+      .toString()
+      .trim();
 
     let pluginsVersion = require('child_process')
       .execSync('git rev-parse HEAD', { cwd: 'src/plugins' })
-      .toString().trim();
+      .toString()
+      .trim();
 
     let apiVersion = require('child_process')
       .execSync('git tag --points-at HEAD')
-      .toString().trim();
+      .toString()
+      .trim();
 
     if (pluginsVersion === appVersion) {
       pluginsVersion = undefined;
@@ -320,7 +340,8 @@ export class NetworkService {
     if (!apiVersion) {
       apiVersion = require('child_process')
         .execSync('git describe --tags --abbrev=0')
-        .toString().trim();
+        .toString()
+        .trim();
 
       if (apiVersion) {
         apiVersion = apiVersion + '-next';

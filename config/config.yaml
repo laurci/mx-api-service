@@ -71,14 +71,15 @@ urls:
     - 'https://api.multiversx.com'
     - 'http://localhost:3001'
   elastic:
-    - 'https://devnet-index.elrond.com'
+    # - 'https://devnet-index.elrond.com'
+    - 'https://admin:admin@127.0.0.1:9200'
   gateway:
-    - 'https://devnet-gateway.multiversx.com'
+    - 'http://127.0.0.1:7950'
   verifier: 'https://play-api.multiversx.com'
   redis: '127.0.0.1'
   rabbitmq: 'amqp://127.0.0.1:5672'
-  providers: 'https://devnet-delegation-api.multiversx.com/providers'
-  delegation: 'https://devnet-delegation-api.multiversx.com'
+  providers: 'http://localhost:3005/providers'
+  delegation: 'http://localhost:3005'
   media: 'https://devnet-media.elrond.com'
   nftThumbnails: 'https://devnet-media.elrond.com/nfts/thumbnail'
   tmp: '/tmp'
@@ -106,10 +107,10 @@ keepAliveTimeout:
   upstream: 60000
 contracts:
   esdt: 'erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u'
-  auction: 'erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l'
+  auction: 'erd1qqqqqqqqqqqqqpgqfzydqmdw7m2vazsp6u5p95yxz76t2p9rd8ss0zp9ts'
   staking: 'erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqllls0lczs7'
-  delegationManager: 'erd1qqqqqqqqqqqqqpgqygvvtlty3v7cad507v5z793duw9jjmlxd8sszs8a2y'
-  delegation: 'erd1qqqqqqqqqqqqqpgqj5zftf3ef3gqm3gklcetpmxwg43rh8z2d8ss2e49aq'
+  delegationManager: 'erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6'
+  delegation: 'erd1qqqqqqqqqqqqqpgqfzydqmdw7m2vazsp6u5p95yxz76t2p9rd8ss0zp9ts'
   metabonding: 'erd1qqqqqqqqqqqqqpgqkg7we73j769ew5we4yyx7uyvnn0nefqgd8ssm6vjc2'
 inflation:
   - 1952123

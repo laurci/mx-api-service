@@ -10,6 +10,7 @@
     "prebuild:nix": "rimraf dist",
     "prebuild:windows": "rd /s /q dist",
     "build": "nest build",
+    "start:dev": "nest start",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start:custom": "npm run copy-custom-config & nest start",
     "start:custom:debug": "npm run copy-custom-config & nest start --watch --debug",
